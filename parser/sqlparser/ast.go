@@ -2120,6 +2120,7 @@ const (
 	NaturalJoinStr        = "natural join"
 	NaturalLeftJoinStr    = "natural left join"
 	NaturalRightJoinStr   = "natural right join"
+	AsofLeftJoinStr       = "asof left join"
 	UndefinedJoinStrategy = "undefined"
 	LookupJoinStrategy    = "lookup"
 	StreamJoinStrategy    = "stream"

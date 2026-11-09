@@ -102,6 +102,7 @@ var keywords = map[string]int{
 	"as":                  AS,
 	"asc":                 ASC,
 	"asensitive":          UNUSED,
+	"asof":                ASOF,
 	"auto_increment":      AUTO_INCREMENT,
 	"before":              UNUSED,
 	"begin":               BEGIN,

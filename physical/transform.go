@@ -220,6 +220,28 @@ func (t *Transformers) TransformNode(node Node) Node {
 				Limit:                       limit,
 			},
 		}
+	case NodeTypeAsofJoin:
+		leftKey := make([]Expression, len(node.AsofJoin.LeftKey))
+		for i := range node.AsofJoin.LeftKey {
+			leftKey[i] = t.TransformExpr(node.AsofJoin.LeftKey[i])
+		}
+		rightKey := make([]Expression, len(node.AsofJoin.RightKey))
+		for i := range node.AsofJoin.RightKey {
+			rightKey[i] = t.TransformExpr(node.AsofJoin.RightKey[i])
+		}
+
+		out = Node{
+			Schema:   schema,
+			NodeType: node.NodeType,
+			AsofJoin: &AsofJoin{
+				Left:      t.TransformNode(node.AsofJoin.Left),
+				Right:     t.TransformNode(node.AsofJoin.Right),
+				LeftKey:   leftKey,
+				RightKey:  rightKey,
+				LeftTime:  t.TransformExpr(node.AsofJoin.LeftTime),
+				RightTime: t.TransformExpr(node.AsofJoin.RightTime),
+			},
+		}
 	default:
 		panic("unexhaustive node type match")
 	}

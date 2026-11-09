@@ -149,6 +149,25 @@ func ExplainNode(node Node, withTypeInfo bool) *graph.Node {
 			out.AddChild("source", prev)
 		}
 
+	case NodeTypeAsofJoin:
+		out = graph.NewNode("asof left join")
+		out.AddChild("right", ExplainNode(node.AsofJoin.Right, withTypeInfo))
+		out.AddChild("left", ExplainNode(node.AsofJoin.Left, withTypeInfo))
+		out.AddChild("right_key", ExplainExpr(Expression{
+			ExpressionType: ExpressionTypeTuple,
+			Tuple: &Tuple{
+				Arguments: node.AsofJoin.RightKey,
+			},
+		}, withTypeInfo))
+		out.AddChild("left_key", ExplainExpr(Expression{
+			ExpressionType: ExpressionTypeTuple,
+			Tuple: &Tuple{
+				Arguments: node.AsofJoin.LeftKey,
+			},
+		}, withTypeInfo))
+		out.AddChild("right_time", ExplainExpr(node.AsofJoin.RightTime, withTypeInfo))
+		out.AddChild("left_time", ExplainExpr(node.AsofJoin.LeftTime, withTypeInfo))
+
 	default:
 		panic("unexhaustive node type match")
 	}

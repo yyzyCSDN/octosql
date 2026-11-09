@@ -27,6 +27,7 @@ type Node struct {
 	InMemoryRecords         *InMemoryRecords
 	OuterJoin               *OuterJoin
 	OrderSensitiveTransform *OrderSensitiveTransform
+	AsofJoin                *AsofJoin
 }
 
 type Schema struct {
@@ -78,6 +79,7 @@ const (
 	NodeTypeInMemoryRecords
 	NodeTypeOuterJoin
 	NodeTypeOrderSensitiveTransform
+	NodeTypeAsofJoin
 )
 
 func (t NodeType) String() string {
@@ -106,6 +108,8 @@ func (t NodeType) String() string {
 		return "outer_join"
 	case NodeTypeOrderSensitiveTransform:
 		return "order_sensitive_transform"
+	case NodeTypeAsofJoin:
+		return "asof_join"
 	}
 	return "unknown"
 }
@@ -267,6 +271,12 @@ type OrderSensitiveTransform struct {
 	OrderByKey                  []Expression
 	OrderByDirectionMultipliers []int
 	Limit                       *Expression
+}
+
+type AsofJoin struct {
+	Left, Right         Node
+	LeftKey, RightKey   []Expression
+	LeftTime, RightTime Expression
 }
 
 func (node *Node) Materialize(ctx context.Context, env Environment) (execution.Node, error) {
@@ -476,6 +486,43 @@ func (node *Node) Materialize(ctx context.Context, env Environment) (execution.N
 
 		// Probably shouldn't happen...
 		return source, nil
+
+	case NodeTypeAsofJoin:
+		left, err := node.AsofJoin.Left.Materialize(ctx, env)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't materialize left asof join source: %w", err)
+		}
+		right, err := node.AsofJoin.Right.Materialize(ctx, env)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't materialize right asof join source: %w", err)
+		}
+
+		leftKeyExprs := make([]execution.Expression, len(node.AsofJoin.LeftKey))
+		for i := range node.AsofJoin.LeftKey {
+			expr, err := node.AsofJoin.LeftKey[i].Materialize(ctx, env.WithRecordSchema(node.AsofJoin.Left.Schema))
+			if err != nil {
+				return nil, fmt.Errorf("couldn't materialize asof join left key expression with index %d: %w", i, err)
+			}
+			leftKeyExprs[i] = expr
+		}
+		rightKeyExprs := make([]execution.Expression, len(node.AsofJoin.RightKey))
+		for i := range node.AsofJoin.RightKey {
+			expr, err := node.AsofJoin.RightKey[i].Materialize(ctx, env.WithRecordSchema(node.AsofJoin.Right.Schema))
+			if err != nil {
+				return nil, fmt.Errorf("couldn't materialize asof join right key expression with index %d: %w", i, err)
+			}
+			rightKeyExprs[i] = expr
+		}
+		leftTimeExpr, err := node.AsofJoin.LeftTime.Materialize(ctx, env.WithRecordSchema(node.AsofJoin.Left.Schema))
+		if err != nil {
+			return nil, fmt.Errorf("couldn't materialize asof join left time expression: %w", err)
+		}
+		rightTimeExpr, err := node.AsofJoin.RightTime.Materialize(ctx, env.WithRecordSchema(node.AsofJoin.Right.Schema))
+		if err != nil {
+			return nil, fmt.Errorf("couldn't materialize asof join right time expression: %w", err)
+		}
+
+		return nodes.NewAsofJoin(left, right, len(node.AsofJoin.Left.Schema.Fields), len(node.AsofJoin.Right.Schema.Fields), leftKeyExprs, rightKeyExprs, leftTimeExpr, rightTimeExpr), nil
 	}
 
 	panic(fmt.Sprintf("unexhaustive node type match: %d", node.NodeType))

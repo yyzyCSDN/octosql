@@ -408,6 +408,11 @@ func ParseJoinTableExpression(expr *sqlparser.JoinTableExpr) (logical.Node, erro
 				return nil, errors.Errorf("outer join without ON predicate")
 			}
 			node = logical.NewOuterJoin(leftTable, rightTable, *joinOn, expr.Join == sqlparser.LeftJoinStr || expr.Join == sqlparser.OuterJoinStr, expr.Join == sqlparser.RightJoinStr || expr.Join == sqlparser.OuterJoinStr)
+		case sqlparser.AsofLeftJoinStr:
+			if joinOn == nil {
+				return nil, errors.Errorf("asof left join without ON predicate")
+			}
+			node = logical.NewAsofJoin(leftTable, rightTable, *joinOn)
 		default:
 			return nil, errors.Errorf("invalid join expression: %v", expr.Join)
 		}

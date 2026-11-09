@@ -1,0 +1,1 @@
+octosql "SELECT o.symbol, o.ts, o.qty, q.price FROM fixtures/asof_orders.json o ASOF LEFT JOIN (SELECT symbol, ts, price FROM fixtures/asof_quotes.json) q ON o.symbol = q.symbol AND q.ts <= o.ts ORDER BY o.ts, o.qty" -o batch_table

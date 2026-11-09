@@ -1,0 +1,1 @@
+octosql "SELECT o.symbol, COUNT(*) AS orders, SUM(q.price) AS quoted_sum FROM fixtures/asof_orders.json o ASOF LEFT JOIN fixtures/asof_quotes.json q ON o.symbol = q.symbol AND q.ts <= o.ts GROUP BY o.symbol" -o batch_table

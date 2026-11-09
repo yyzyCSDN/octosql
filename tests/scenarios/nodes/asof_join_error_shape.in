@@ -1,0 +1,1 @@
+octosql "SELECT * FROM fixtures/asof_orders.json o ASOF LEFT JOIN fixtures/asof_quotes.json q ON q.ts <= o.ts" -o batch_table

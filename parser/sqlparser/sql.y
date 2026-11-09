@@ -216,6 +216,9 @@ func skipToEnd(yylex interface{}) {
 // MySQL reserved words that are unused by this grammar will map to this token.
 %token <bytes> UNUSED
 
+// OctoSQL ASOF LEFT JOIN. Declared last so existing token numbers stay stable.
+%left <bytes> ASOF
+
 %type <statement> command
 %type <selStmt> select_statement base_select union_lhs union_rhs
 %type <bytes> comma_opt
@@ -240,7 +243,7 @@ func skipToEnd(yylex interface{}) {
 %type <tableValuedFunctionArgumentValue> table_valued_function_argument_value
 %type <joinCondition> join_condition join_condition_opt on_expression_opt
 %type <tableNames> table_name_list delete_table_list
-%type <str> inner_join outer_join straight_join natural_join
+%type <str> inner_join outer_join straight_join natural_join asof_left_join
 %type <tableName> table_name into_table_name delete_table_name
 %type <aliasedTableName> aliased_table_name
 %type <indexHints> index_hint_list
@@ -2054,6 +2057,10 @@ join_table:
   {
     $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3}
   }
+| table_reference asof_left_join table_reference join_condition
+  {
+    $$ = &JoinTableExpr{LeftExpr: $1, Join: $2, RightExpr: $3, Condition: $4}
+  }
 
 join_condition:
   ON expression
@@ -3565,4 +3572,15 @@ ddl_skip_to_end:
 | reserved_sql_id
   {
     skipToEnd(yylex)
+  }
+
+// Kept at the end so the new ASOF grammar states are appended after all existing ones.
+asof_left_join:
+  ASOF LEFT JOIN
+  {
+    $$ = AsofLeftJoinStr
+  }
+| ASOF LEFT OUTER JOIN
+  {
+    $$ = AsofLeftJoinStr
   }
